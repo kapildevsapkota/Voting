@@ -13,7 +13,7 @@ interface Question {
   phone_number: string;
   question_text: string;
   vote_count: number;
-  timestamp?: number; // Add a timestamp to track recent changes
+  timestamp?: number;
 }
 
 const fetcher = async (url: string) => {

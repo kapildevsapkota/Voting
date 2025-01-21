@@ -6,12 +6,13 @@ import Swal from "sweetalert2";
 import Header from "@/components/Header";
 import QuestionForm from "@/components/QuestionForm";
 import UserQuestionsSheet from "@/components/UserQuestionsSheet";
-import { Question } from "@/type/Question";
+import type { Question } from "@/type/Question";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThumbsUp, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
-import { User as UserType } from "@/types/User";
+import type { User as UserType } from "@/types/User";
+import useSWR from "swr";
 
 export default function Home() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -21,10 +22,48 @@ export default function Home() {
     number | null
   >(null);
   const [user, setUser] = useState<UserType | null>(null);
+  const [sessionTitle, setSessionTitle] = useState<string>("");
   const router = useRouter();
 
   // Add this line to reference the user
-  const currentUser = user; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const currentUser = user;
+
+  // Fetch questions using SWR
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+  const { data } = useSWR(
+    "https://cim.baliyoventures.com/api/running-session/questions/",
+    fetcher,
+    {
+      refreshInterval: 2000,
+    }
+  );
+
+  useEffect(() => {
+    if (data) {
+      setSessionTitle(data.session_title || "Current Session");
+      const userOwnQuestions = currentUser
+        ? data.results.filter((q: Question) => q.name === currentUser.name)
+        : []; // Handle case when currentUser is null
+
+      const otherQuestions = currentUser
+        ? data.results.filter((q: Question) => q.name !== currentUser.name)
+        : []; // Handle case when currentUser is null
+
+      // Filter out voted questions
+      const unvotedQuestions = otherQuestions.filter(
+        (q: Question) => !votedQuestions.includes(q.id)
+      );
+      const sortedQuestions = [
+        ...unvotedQuestions,
+        ...otherQuestions.filter((q: Question) =>
+          votedQuestions.includes(q.id)
+        ),
+      ];
+
+      setQuestions(sortedQuestions);
+      setUserQuestions(userOwnQuestions);
+    }
+  }, [data, currentUser, votedQuestions]);
 
   // Load voted questions from localStorage on component mount
   useEffect(() => {
@@ -41,64 +80,7 @@ export default function Home() {
       localStorage.getItem("votedQuestions") || "[]"
     );
     setVotedQuestions(storedVotedQuestions);
-
-    // Fetch initial questions
-    fetchQuestions(parsedUser);
   }, [router]);
-
-  // Fetch questions from the API
-  const fetchQuestions = async (currentUser: UserType) => {
-    try {
-      const response = await fetch(
-        "https://cim.baliyoventures.com/api/questions/"
-      );
-      const data = await response.json();
-
-      // Separate user's questions and other questions
-      const userOwnQuestions = data.results.filter(
-        (q: Question) => q.name === currentUser.name
-      );
-      const otherQuestions = data.results.filter(
-        (q: Question) => q.name !== currentUser.name
-      );
-
-      // Sort unvoted questions by creation date (most recent first)
-      const unvotedQuestions = otherQuestions
-        .filter((q: Question) => !votedQuestions.includes(q.id))
-        .sort(
-          (a: Question, b: Question) =>
-            new Date(b.created_at || 0).getTime() -
-            new Date(a.created_at || 0).getTime()
-        );
-
-      // Sort voted questions by vote count
-      const votedQuestionsData = otherQuestions
-        .filter((q: Question) => votedQuestions.includes(q.id))
-        .sort((a: Question, b: Question) => b.vote_count - a.vote_count);
-
-      // Combine questions: unvoted (sorted by date) first, then voted (sorted by votes)
-      const sortedQuestions = [...unvotedQuestions, ...votedQuestionsData];
-
-      // Set the sorted questions
-      setQuestions(sortedQuestions);
-
-      // Set user's questions (can be sorted if needed)
-      const sortedUserQuestions = userOwnQuestions.sort(
-        (a: Question, b: Question) =>
-          new Date(b.created_at || 0).getTime() -
-          new Date(a.created_at || 0).getTime()
-      );
-      setUserQuestions(sortedUserQuestions);
-    } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Failed to fetch questions",
-        footer: `${error}`,
-      });
-      console.error("Failed to fetch questions", error);
-    }
-  };
 
   const handleAddQuestion = async (newQuestion: string) => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -196,19 +178,15 @@ export default function Home() {
         );
 
         // Separate voted and unvoted questions
-        const unvotedQuestions = updatedQuestions
-          .filter((q) => !votedQuestions.includes(q.id))
-          .sort(
-            (a, b) =>
-              new Date(b.created_at || 0).getTime() -
-              new Date(a.created_at || 0).getTime()
-          );
+        const unvotedQuestions = updatedQuestions.filter(
+          (q) => !votedQuestions.includes(q.id)
+        );
 
-        const votedQuestionsData = updatedQuestions
-          .filter((q) => votedQuestions.includes(q.id) || q.id === id)
-          .sort((a, b) => b.vote_count - a.vote_count);
+        const votedQuestionsData = updatedQuestions.filter((q) =>
+          votedQuestions.includes(q.id)
+        );
 
-        // Update questions list
+        // Combine questions: unvoted first, then voted
         setQuestions([...unvotedQuestions, ...votedQuestionsData]);
 
         // Update voted questions
@@ -253,6 +231,9 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Conference Q&A</h1>
+          <h2 className="text-xl font-semibold mt-2 text-gray-600">
+            {sessionTitle}
+          </h2>
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon">
@@ -277,7 +258,7 @@ export default function Home() {
 
               return (
                 <motion.div
-                  key={question.id}
+                  key={index}
                   layout
                   initial={{ opacity: 0, y: 20 }}
                   animate={{
