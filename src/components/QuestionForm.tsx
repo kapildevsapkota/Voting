@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { PlusCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
   DialogContent,
-  DialogTrigger,
+  DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import { PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 interface QuestionFormProps {
   onAddQuestion: (question: string) => void;
@@ -29,29 +32,74 @@ export default function QuestionForm({ onAddQuestion }: QuestionFormProps) {
   };
 
   return (
-    <div className="mb-8 flex justify-center">
+    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button className="w-1/2 py-10 text-2xl font-bold flex justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105">
-            <PlusCircle className="w-8 h-8" />
-            Add Your Question
-          </Button>
+          <motion.div
+            initial={{ scale: 1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-full"
+          >
+            <Button
+              className="w-full py-8 text-lg font-bold 
+                         bg-gradient-to-r from-purple-600 to-pink-600 
+                         hover:from-purple-700 hover:to-pink-700 
+                         transition-all duration-300 
+                         flex items-center justify-center gap-3 
+                         shadow-2xl hover:shadow-purple-500/50"
+            >
+              <PlusCircle className="w-6 h-6" />
+              Add Your Question
+            </Button>
+          </motion.div>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogTitle>Ask a Question</DialogTitle>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <h2 className="text-2xl font-semibold mb-4">Ask a Question</h2>
+
+        <DialogContent className="sm:max-w-[500px] rounded-2xl p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
+            <DialogHeader className="text-white">
+              <DialogTitle className="text-3xl font-bold">
+                Ask a Question
+              </DialogTitle>
+              <DialogDescription className="text-purple-100">
+                Share your thoughts with the conference community
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
             <Textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded"
-              rows={3}
               placeholder="Type your question here..."
+              className="w-full min-h-[150px] text-lg border-2 border-gray-300 
+                         rounded-xl focus:border-purple-500 
+                         focus:ring-2 focus:ring-purple-200 
+                         transition-all duration-300 
+                         resize-none"
               required
             />
-            <Button type="submit" className="w-full">
-              Submit Question
-            </Button>
+
+            <AnimatePresence>
+              {question.trim() && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                >
+                  <Button
+                    type="submit"
+                    className="w-full py-3 text-lg font-bold 
+                               bg-gradient-to-r from-blue-600 to-indigo-600 
+                               hover:from-blue-700 hover:to-indigo-700 
+                               transition-all duration-300 
+                               shadow-xl hover:shadow-blue-500/50"
+                  >
+                    Submit Question
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </form>
         </DialogContent>
       </Dialog>
