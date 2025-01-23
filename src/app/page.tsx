@@ -14,7 +14,6 @@ import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import type { User as UserType } from "@/types/User";
 import useSWR from "swr";
 
-
 export default function Home() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [userQuestions, setUserQuestions] = useState<Question[]>([]);
@@ -27,9 +26,7 @@ export default function Home() {
 
   const router = useRouter();
 
-
   const currentUser = user;
-
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
   const { data } = useSWR(
@@ -41,17 +38,29 @@ export default function Home() {
   );
 
   useEffect(() => {
+    const fetchSessionData = async () => {
+      const response = await fetch(
+        "https://cim.baliyoventures.com/api/running-sessions/"
+      );
+      const data = await response.json();
+      if (data.results.length > 0) {
+        setSessionTitle(data.results[0].session.title);
+      }
+    };
+    fetchSessionData();
+  }, []);
+
+  useEffect(() => {
     if (data) {
       setSessionTitle(data.session_title || "Current Session");
       const userOwnQuestions = currentUser
         ? data.results.filter((q: Question) => q.name === currentUser.name)
-        : []; 
+        : [];
 
       const otherQuestions = currentUser
         ? data.results.filter((q: Question) => q.name !== currentUser.name)
-        : []; 
+        : [];
 
-      
       const unvotedQuestions = otherQuestions.filter(
         (q: Question) => !votedQuestions.includes(q.id)
       );
@@ -67,7 +76,6 @@ export default function Home() {
     }
   }, [data, currentUser, votedQuestions]);
 
-  // Load voted questions from localStorage on component mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) {
@@ -134,7 +142,6 @@ export default function Home() {
   const handleVote = async (id: number) => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-    // Check if user has already voted
     if (votedQuestions.includes(id)) {
       Swal.fire({
         icon: "warning",
@@ -144,7 +151,6 @@ export default function Home() {
       return;
     }
 
-    // Check if user is voting for their own question
     const questionToVote = questions.find((q) => q.id === id);
     if (questionToVote && questionToVote.name === user.name) {
       Swal.fire({
@@ -174,12 +180,10 @@ export default function Home() {
       const responseData = await response.json();
 
       if (response.ok) {
-        // Update questions with new vote count
         const updatedQuestions = questions.map((q) =>
           q.id === id ? { ...q, vote_count: q.vote_count + 1 } : q
         );
 
-        // Separate voted and unvoted questions
         const unvotedQuestions = updatedQuestions.filter(
           (q) => !votedQuestions.includes(q.id)
         );
@@ -188,10 +192,8 @@ export default function Home() {
           votedQuestions.includes(q.id)
         );
 
-        // Combine questions: unvoted first, then voted
         setQuestions([...unvotedQuestions, ...votedQuestionsData]);
 
-        // Update voted questions
         const newVotedQuestions = [...votedQuestions, id];
         setVotedQuestions(newVotedQuestions);
         localStorage.setItem(
@@ -199,7 +201,6 @@ export default function Home() {
           JSON.stringify(newVotedQuestions)
         );
 
-        // Set latest changed question for animation
         setLatestChangedQuestion(id);
         setTimeout(() => setLatestChangedQuestion(null), 5000);
 
@@ -328,4 +329,3 @@ export default function Home() {
     </div>
   );
 }
-
