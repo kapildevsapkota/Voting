@@ -14,21 +14,23 @@ import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import type { User as UserType } from "@/types/User";
 import useSWR from "swr";
 
+
 export default function Home() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [userQuestions, setUserQuestions] = useState<Question[]>([]);
+  const [sessionTitle, setSessionTitle] = useState<string>("");
   const [votedQuestions, setVotedQuestions] = useState<number[]>([]);
   const [latestChangedQuestion, setLatestChangedQuestion] = useState<
     number | null
   >(null);
   const [user, setUser] = useState<UserType | null>(null);
-  const [sessionTitle, setSessionTitle] = useState<string>("");
+
   const router = useRouter();
 
-  // Add this line to reference the user
+
   const currentUser = user;
 
-  // Fetch questions using SWR
+
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
   const { data } = useSWR(
     "https://cim.baliyoventures.com/api/running-session/questions/",
@@ -43,13 +45,13 @@ export default function Home() {
       setSessionTitle(data.session_title || "Current Session");
       const userOwnQuestions = currentUser
         ? data.results.filter((q: Question) => q.name === currentUser.name)
-        : []; // Handle case when currentUser is null
+        : []; 
 
       const otherQuestions = currentUser
         ? data.results.filter((q: Question) => q.name !== currentUser.name)
-        : []; // Handle case when currentUser is null
+        : []; 
 
-      // Filter out voted questions
+      
       const unvotedQuestions = otherQuestions.filter(
         (q: Question) => !votedQuestions.includes(q.id)
       );
@@ -326,3 +328,4 @@ export default function Home() {
     </div>
   );
 }
+

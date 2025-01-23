@@ -20,18 +20,13 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Session, RunningSession, RunningSessionResponse, SessionsResponse } from "@/types/Admin";
 
-interface Session {
-  id: string;
-  title: string;
-}
 
-interface SessionsResponse {
-  results: Session[];
-}
 
 export default function AdminPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [runningSession, setRunningSession] = useState<RunningSession | null>(null);
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,6 +34,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchSessions();
+    fetchRunningSession();
   }, []);
 
   const fetchSessions = async () => {
@@ -70,6 +66,23 @@ export default function AdminPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchRunningSession = async () => {
+    try {
+      const response = await fetch('https://cim.baliyoventures.com/api/running-sessions/');
+      const data: RunningSessionResponse = await response.json();
+      if (data.results.length > 0) {
+        setRunningSession(data.results[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching running session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch running session",
+        variant: "destructive",
+      });
     }
   };
 
@@ -187,9 +200,10 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <h2 className="text-2xl font-semibold text-center mb-6">
-              Session Title
-            </h2>
+            {runningSession && (
+              <h2 className="text-2xl font-bold mb-6">{runningSession.session.title}</h2>
+            )}
+            
             <div className="space-y-6">
               <div className="space-y-2">
                 <label
@@ -205,7 +219,7 @@ export default function AdminPage() {
                   <SelectTrigger id="session-select">
                     <SelectValue placeholder="Choose a session" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent >
                     {sessions.map((session) => (
                       <SelectItem key={session.id} value={session.id}>
                         {session.title}
