@@ -47,28 +47,30 @@ export default function TopQuestions() {
     }
   );
 
-  // Track changes in questions and votes
+  // Track vote changes
   useEffect(() => {
-    if (data?.results && previousQuestions.length > 0) {
-      // Find the question with the most recent vote change
-      const changedQuestion = data.results.find((newQ) => {
-        const oldQ = previousQuestions.find((q) => q.id === newQ.id);
-        return oldQ && oldQ.vote_count !== newQ.vote_count;
-      });
+    if (!data?.results || !previousQuestions.length) return;
 
-      if (changedQuestion) {
-        setLatestChangedQuestion(changedQuestion.id);
+    // Find the question with the most recent vote change
+    const changedQuestion = data.results.find((newQ) => {
+      const oldQ = previousQuestions.find((q) => q.id === newQ.id);
+      return oldQ && oldQ.vote_count !== newQ.vote_count;
+    });
 
-        // Reset the latest changed question after 5 seconds
-        const timer = setTimeout(() => {
-          setLatestChangedQuestion(null);
-        }, 5000);
+    if (changedQuestion) {
+      setLatestChangedQuestion(changedQuestion.id);
 
-        return () => clearTimeout(timer);
-      }
+      // Reset the latest changed question after 5 seconds
+      const timer = setTimeout(() => {
+        setLatestChangedQuestion(null);
+      }, 5000);
+
+      return () => clearTimeout(timer);
     }
+  }, [data?.results, previousQuestions]);
 
-    // Update previous questions
+  // Update previous questions separately
+  useEffect(() => {
     if (data?.results) {
       setPreviousQuestions(data.results);
     }

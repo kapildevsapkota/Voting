@@ -30,11 +30,7 @@ interface SessionsResponse {
   results: Session[];
 }
 
-interface AdminPageProps {
-  sessionTitle: string;
-}
-
-export default function AdminPage({ sessionTitle }: AdminPageProps) {
+export default function AdminPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -192,7 +188,7 @@ export default function AdminPage({ sessionTitle }: AdminPageProps) {
           </CardHeader>
           <CardContent>
             <h2 className="text-2xl font-semibold text-center mb-6">
-              {sessionTitle}
+              Session Title
             </h2>
             <div className="space-y-6">
               <div className="space-y-2">
