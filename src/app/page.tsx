@@ -32,9 +32,6 @@ export default function Home() {
   const { data } = useSWR(
     "https://cim.baliyoventures.com/api/running-session/questions/",
     fetcher,
-    {
-      refreshInterval: 2000,
-    }
   );
 
   useEffect(() => {

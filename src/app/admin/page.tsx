@@ -22,8 +22,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Session, RunningSession, RunningSessionResponse, SessionsResponse } from "@/types/Admin";
 
-
-
 export default function AdminPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [runningSession, setRunningSession] = useState<RunningSession | null>(null);
@@ -91,7 +89,14 @@ export default function AdminPage() {
   };
 
   const toggleSession = async () => {
-    if (!selectedSession) return;
+    if (!selectedSession) {
+      toast({
+        title: "Error",
+        description: "Please select a session before toggling.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -114,13 +119,11 @@ export default function AdminPage() {
         throw new Error(errorData.message || "Failed to toggle session state");
       }
 
-      await response.json();
-      setIsSessionActive(!isSessionActive);
+      const data = await response.json();
+      setIsSessionActive(data.is_active);
       toast({
         title: "Success",
-        description: `Session ${
-          isSessionActive ? "deactivated" : "activated"
-        } successfully.`,
+        description: `Session ${data.is_active ? "activated" : "deactivated"} successfully.`,
       });
     } catch (error) {
       toast({
@@ -140,7 +143,7 @@ export default function AdminPage() {
     if (!selectedSession) {
       toast({
         title: "Error",
-        description: "Please select a session first",
+        description: "Please select a session first.",
         variant: "destructive",
       });
       return;
@@ -163,10 +166,10 @@ export default function AdminPage() {
         throw new Error(errorData.message || "Failed to refresh session");
       }
 
-      await response.json();
+      const data = await response.json();
       toast({
         title: "Success",
-        description: "Session refreshed successfully",
+        description: `Session refreshed successfully. Current status: ${data.is_active ? "Active" : "Inactive"}.`,
       });
     } catch (error) {
       toast({
@@ -183,27 +186,22 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-r from-blue-500 to-purple-600 py-12 px-4 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="max-w-3xl mx-auto"
       >
-        <Card>
+        <Card className="shadow-lg rounded-lg bg-white">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold text-center">
-              Admin Dashboard
-            </CardTitle>
-            <CardDescription className="text-center">
-              Manage your sessions
-            </CardDescription>
+            <CardTitle className="text-4xl font-bold text-center text-gray-800">Admin Dashboard</CardTitle>
+            <CardDescription className="text-center text-gray-600">Manage your sessions</CardDescription>
           </CardHeader>
           <CardContent>
             {runningSession && (
-              <h2 className="text-2xl font-bold mb-6">{runningSession.session.title}</h2>
+              <h2 className="text-3xl font-bold mb-6 text-gray-800">{runningSession.session.title}</h2>
             )}
-            
             <div className="space-y-6">
               <div className="space-y-2">
                 <label
@@ -219,7 +217,7 @@ export default function AdminPage() {
                   <SelectTrigger id="session-select">
                     <SelectValue placeholder="Choose a session" />
                   </SelectTrigger>
-                  <SelectContent >
+                  <SelectContent>
                     {sessions.map((session) => (
                       <SelectItem key={session.id} value={session.id}>
                         {session.title}
@@ -228,41 +226,28 @@ export default function AdminPage() {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Session Status
-                </span>
+              <div className="flex items-center justify-between space-x-4">
+                <span className="text-sm font-medium text-gray-700">Session Status</span>
                 <Switch
                   checked={isSessionActive}
                   onCheckedChange={toggleSession}
                   disabled={!selectedSession || isLoading}
+                  className="h-6 w-12"
                 />
               </div>
-
               <div className="text-center">
                 <p className="text-sm text-gray-500">
-                  Currently Selected Session:{" "}
-                  <span className="font-semibold">
-                    {selectedSession
-                      ? sessions.find(
-                          (session) => session.id === selectedSession
-                        )?.title
-                      : "None"}
+                  Currently Selected Session: <span className="font-semibold">
+                    {selectedSession ? sessions.find((session) => session.id === selectedSession)?.title : "None"}
                   </span>
                 </p>
               </div>
-
-              <div className="flex justify-center gap-4">
-                <Button onClick={fetchSessions} disabled={isLoading}>
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
+                <Button onClick={fetchSessions} disabled={isLoading} className="w-full sm:w-auto p-4 transition-transform duration-200 hover:scale-105">
                   {isLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="flex items-center"
-                    >
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center">
                       <CheckCircle className="mr-2 h-4 w-4" />
                       Refresh Sessions
                     </motion.div>
@@ -272,15 +257,12 @@ export default function AdminPage() {
                   onClick={refreshSession}
                   disabled={isLoading || !selectedSession}
                   variant="outline"
+                  className="w-full sm:w-auto p-4 transition-transform duration-200 hover:scale-105"
                 >
                   {isLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="flex items-center"
-                    >
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center">
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Refresh Current Session
                     </motion.div>

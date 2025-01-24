@@ -64,6 +64,8 @@ export default function Login() {
         onSubmit={handleSubmit(onSubmit)}
         className="bg-white p-6 rounded-lg shadow-md w-96 space-y-4"
       >
+        <p className="text-sm text-gray-600 mb-2">Please enter your credentials to log in.</p>
+        <p className="text-sm text-gray-600 mb-2">Welcome to our application!</p>
         <h2 className="text-2xl font-semibold mb-4">Login</h2>
         
         <div className="space-y-2">

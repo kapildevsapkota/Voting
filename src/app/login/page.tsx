@@ -45,40 +45,44 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500 p-4">
       <form
         onSubmit={handleLogin}
-        className="bg-white p-6 rounded-lg shadow-md w-96"
+        className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md"
       >
-        <h2 className="text-2xl font-semibold mb-4">Login</h2>
+        <div className="text-center">
+          <h2 className="text-3xl font-bold mb-4 text-gray-800">Login</h2>
+          <p className="text-sm text-gray-600 mb-2">Welcome to our application!</p>
+          <p className="text-sm text-gray-600 mb-2">Please enter your credentials to log in.</p>
+        </div>
 
         {error && (
           <div className="mb-4 text-red-600 text-sm font-medium">{error}</div>
         )}
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Name</label>
+        <div className="mb-4 mt-4">
+          <label className="block text-sm font-medium mb-1 text-gray-700">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Phone Number</label>
+          <label className="block text-sm font-medium mb-1 text-gray-700">Phone Number</label>
           <input
             type="text"
             value={phone_number}
             onChange={(e) => setPhoneNumber(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded"
+          className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700 transition duration-200 ease-in-out"
         >
           Login
         </button>
