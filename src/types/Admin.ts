@@ -1,6 +1,7 @@
 export interface Session {
-  id: string;
+  id: number;
   title: string;
+  is_acepting_questions: boolean;
 }
 
 export interface SessionsResponse {
@@ -12,7 +13,7 @@ export interface RunningSession {
   session: {
     id: number;
     title: string;
-    is_accepting_questions: boolean;
+    is_acepting_questions: boolean;
   };
 }
 
@@ -22,5 +23,3 @@ export interface RunningSessionResponse {
   previous: string | null;
   results: RunningSession[];
 }
-
-

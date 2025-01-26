@@ -20,46 +20,51 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Session, RunningSession, RunningSessionResponse, SessionsResponse } from "@/types/Admin";
+import {
+  Session,
+  RunningSessionResponse,
+  SessionsResponse,
+} from "@/types/Admin";
 
 export default function AdminPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [runningSession, setRunningSession] = useState<RunningSession | null>(null);
-  const [selectedSession, setSelectedSession] = useState<string | null>(null);
-  const [isSessionActive, setIsSessionActive] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchSessions();
-    fetchRunningSession();
-  }, []);
+  const selectedSession = sessions.find(
+    (session) => session.id.toString() === selectedSessionId
+  );
 
-  const fetchSessions = async () => {
+  const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        "https://cim.baliyoventures.com/api/sessions/",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch sessions");
+      const [sessionsResponse, runningSessionResponse] = await Promise.all([
+        fetch("https://cim.baliyoventures.com/api/sessions/"),
+        fetch("https://cim.baliyoventures.com/api/running-sessions/"),
+      ]);
+
+      if (!sessionsResponse.ok || !runningSessionResponse.ok) {
+        throw new Error("Failed to fetch data");
       }
-      const data: SessionsResponse = await response.json();
-      setSessions(data.results);
-    } catch (error) {
+
+      const sessionsData: SessionsResponse = await sessionsResponse.json();
+      const runningSessionData: RunningSessionResponse =
+        await runningSessionResponse.json();
+
+      setSessions(sessionsData.results);
+
+      if (runningSessionData.results.length > 0) {
+        setSelectedSessionId(
+          runningSessionData.results[0].session.id.toString()
+        );
+      }
+    } catch {
       toast({
         title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch sessions. Please try again.",
+        description: "Failed to fetch session data",
         variant: "destructive",
       });
     } finally {
@@ -67,29 +72,12 @@ export default function AdminPage() {
     }
   };
 
-  const fetchRunningSession = async () => {
-    try {
-      const response = await fetch('https://cim.baliyoventures.com/api/running-sessions/');
-      const data: RunningSessionResponse = await response.json();
-      if (data.results.length > 0) {
-        setRunningSession(data.results[0]);
-      }
-    } catch (error) {
-      console.error('Error fetching running session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch running session",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSessionChange = (value: string) => {
-    setSelectedSession(value);
-  };
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
 
   const toggleSession = async () => {
-    if (!selectedSession) {
+    if (!selectedSessionId) {
       toast({
         title: "Error",
         description: "Please select a session before toggling.",
@@ -108,8 +96,8 @@ export default function AdminPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            session_id: selectedSession,
-            is_active: !isSessionActive,
+            session_id: selectedSessionId,
+            is_active: !selectedSession?.is_acepting_questions,
           }),
         }
       );
@@ -119,11 +107,13 @@ export default function AdminPage() {
         throw new Error(errorData.message || "Failed to toggle session state");
       }
 
-      const data = await response.json();
-      setIsSessionActive(data.is_active);
+      await fetchInitialData();
+
       toast({
         title: "Success",
-        description: `Session ${data.is_active ? "activated" : "deactivated"} successfully.`,
+        description: `Session ${
+          selectedSession?.is_acepting_questions ? "activated" : "deactivated"
+        } successfully.`,
       });
     } catch (error) {
       toast({
@@ -140,7 +130,7 @@ export default function AdminPage() {
   };
 
   const refreshSession = async () => {
-    if (!selectedSession) {
+    if (!selectedSessionId) {
       toast({
         title: "Error",
         description: "Please select a session first.",
@@ -152,7 +142,7 @@ export default function AdminPage() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://cim.baliyoventures.com/api/running-session/${selectedSession}/`,
+        `https://cim.baliyoventures.com/api/running-session/${selectedSessionId}/`,
         {
           method: "PATCH",
           headers: {
@@ -166,10 +156,11 @@ export default function AdminPage() {
         throw new Error(errorData.message || "Failed to refresh session");
       }
 
-      const data = await response.json();
+      await fetchInitialData();
+
       toast({
         title: "Success",
-        description: `Session refreshed successfully. Current status: ${data.is_active ? "Active" : "Inactive"}.`,
+        description: "Session refreshed successfully.",
       });
     } catch (error) {
       toast({
@@ -195,12 +186,18 @@ export default function AdminPage() {
       >
         <Card className="shadow-lg rounded-lg bg-white">
           <CardHeader>
-            <CardTitle className="text-4xl font-bold text-center text-gray-800">Admin Dashboard</CardTitle>
-            <CardDescription className="text-center text-gray-600">Manage your sessions</CardDescription>
+            <CardTitle className="text-4xl font-bold text-center text-gray-800">
+              Admin Dashboard
+            </CardTitle>
+            <CardDescription className="text-center text-gray-600">
+              Manage your sessions
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {runningSession && (
-              <h2 className="text-3xl font-bold mb-6 text-gray-800">{runningSession.session.title}</h2>
+            {selectedSession && (
+              <h2 className="text-3xl font-bold mb-6 text-gray-800">
+                {selectedSession.title}
+              </h2>
             )}
             <div className="space-y-6">
               <div className="space-y-2">
@@ -211,43 +208,62 @@ export default function AdminPage() {
                   Select Session
                 </label>
                 <Select
-                  onValueChange={handleSessionChange}
+                  onValueChange={setSelectedSessionId}
                   disabled={isLoading}
+                  value={selectedSessionId || undefined}
                 >
                   <SelectTrigger id="session-select">
                     <SelectValue placeholder="Choose a session" />
                   </SelectTrigger>
                   <SelectContent>
                     {sessions.map((session) => (
-                      <SelectItem key={session.id} value={session.id}>
+                      <SelectItem
+                        key={session.id}
+                        value={session.id.toString()}
+                      >
                         {session.title}
+                        {` (${
+                          session.is_acepting_questions ? "Active" : "Inactive"
+                        })`}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex items-center justify-between space-x-4">
-                <span className="text-sm font-medium text-gray-700">Session Status</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Is Accepting Questions:{" "}
+                  {selectedSession?.is_acepting_questions ? "Yes" : "No"}
+                </span>
                 <Switch
-                  checked={isSessionActive}
+                  checked={selectedSession?.is_acepting_questions || false}
                   onCheckedChange={toggleSession}
-                  disabled={!selectedSession || isLoading}
+                  disabled={!selectedSessionId || isLoading}
                   className="h-6 w-12"
                 />
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-500">
-                  Currently Selected Session: <span className="font-semibold">
-                    {selectedSession ? sessions.find((session) => session.id === selectedSession)?.title : "None"}
+                  Currently Selected Session:{" "}
+                  <span className="font-semibold">
+                    {selectedSession?.title || "None"}
                   </span>
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <Button onClick={fetchSessions} disabled={isLoading} className="w-full sm:w-auto p-4 transition-transform duration-200 hover:scale-105">
+                <Button
+                  onClick={fetchInitialData}
+                  disabled={isLoading}
+                  className="w-full sm:w-auto p-4 transition-transform duration-200 hover:scale-105"
+                >
                   {isLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center">
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center"
+                    >
                       <CheckCircle className="mr-2 h-4 w-4" />
                       Refresh Sessions
                     </motion.div>
@@ -255,14 +271,18 @@ export default function AdminPage() {
                 </Button>
                 <Button
                   onClick={refreshSession}
-                  disabled={isLoading || !selectedSession}
+                  disabled={isLoading || !selectedSessionId}
                   variant="outline"
                   className="w-full sm:w-auto p-4 transition-transform duration-200 hover:scale-105"
                 >
                   {isLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center">
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center"
+                    >
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Refresh Current Session
                     </motion.div>

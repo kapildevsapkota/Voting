@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import Header from "@/components/Header";
 import QuestionForm from "@/components/QuestionForm";
 import UserQuestionsSheet from "@/components/UserQuestionsSheet";
 import type { Question } from "@/type/Question";
@@ -12,7 +11,6 @@ import { ThumbsUp, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import type { User as UserType } from "@/types/User";
-import useSWR from "swr";
 
 export default function Home() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -28,50 +26,68 @@ export default function Home() {
 
   const currentUser = user;
 
-  const fetcher = (url: string) => fetch(url).then((res) => res.json());
-  const { data } = useSWR(
-    "https://cim.baliyoventures.com/api/running-session/questions/",
-    fetcher,
-  );
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await fetch(
+          "https://cim.baliyoventures.com/api/running-session/questions/"
+        );
+        const data = await response.json();
+
+        const userOwnQuestions = currentUser
+          ? data.results.filter((q: Question) => q.name === currentUser.name)
+          : [];
+
+        const otherQuestions = currentUser
+          ? data.results.filter((q: Question) => q.name !== currentUser.name)
+          : [];
+
+        const unvotedQuestions = otherQuestions.filter(
+          (q: Question) => !votedQuestions.includes(q.id)
+        );
+
+        const sortedQuestions = [
+          ...unvotedQuestions,
+          ...otherQuestions.filter((q: Question) =>
+            votedQuestions.includes(q.id)
+          ),
+        ];
+
+        setQuestions(sortedQuestions);
+        setUserQuestions(userOwnQuestions);
+      } catch (error) {
+        console.error("Error fetching questions:", error);
+      }
+    };
+
+    fetchQuestions();
+
+    const pollInterval = setInterval(fetchQuestions, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [currentUser, votedQuestions]);
 
   useEffect(() => {
     const fetchSessionData = async () => {
-      const response = await fetch(
-        "https://cim.baliyoventures.com/api/running-sessions/"
-      );
-      const data = await response.json();
-      if (data.results.length > 0) {
-        setSessionTitle(data.results[0].session.title);
+      try {
+        const response = await fetch(
+          "https://cim.baliyoventures.com/api/running-sessions/"
+        );
+        const data = await response.json();
+        if (data.results.length > 0) {
+          setSessionTitle(data.results[0].session.title);
+        }
+      } catch (error) {
+        console.error("Error fetching session:", error);
       }
     };
+
     fetchSessionData();
+
+    const pollInterval = setInterval(fetchSessionData, 3000);
+
+    return () => clearInterval(pollInterval);
   }, []);
-
-  useEffect(() => {
-    if (data) {
-      setSessionTitle(data.session_title || "Current Session");
-      const userOwnQuestions = currentUser
-        ? data.results.filter((q: Question) => q.name === currentUser.name)
-        : [];
-
-      const otherQuestions = currentUser
-        ? data.results.filter((q: Question) => q.name !== currentUser.name)
-        : [];
-
-      const unvotedQuestions = otherQuestions.filter(
-        (q: Question) => !votedQuestions.includes(q.id)
-      );
-      const sortedQuestions = [
-        ...unvotedQuestions,
-        ...otherQuestions.filter((q: Question) =>
-          votedQuestions.includes(q.id)
-        ),
-      ];
-
-      setQuestions(sortedQuestions);
-      setUserQuestions(userOwnQuestions);
-    }
-  }, [data, currentUser, votedQuestions]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -227,25 +243,29 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-100 pb-24">
-      <Header />
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Conference Q&A</h1>
-          <h2 className="text-xl font-semibold mt-2 text-gray-600">
-            {sessionTitle}
-          </h2>
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+          <div className="flex flex-col items-center sm:items-start">
+            <h1 className="text-2xl sm:text-3xl font-bold text-center sm:text-left">
+              Conference Q&A
+            </h1>
+            <h2 className="text-lg sm:text-xl font-semibold mt-2 text-gray-600 text-center sm:text-left">
+              {sessionTitle}
+            </h2>
+          </div>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button
+                variant="outline"
+                size="icon"
+                className="fixed top-10 right-4 z-10 sm:relative sm:bottom-0"
+              >
                 <User className="h-4 w-4" />
                 <span className="sr-only">My Questions</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="bottom">
-              <UserQuestionsSheet
-                questions={userQuestions}
-                onVote={handleVote}
-              />
+            <SheetContent side="bottom" className="h-[80vh] sm:h-[60vh]">
+              <UserQuestionsSheet questions={userQuestions} />
             </SheetContent>
           </Sheet>
         </div>
@@ -255,10 +275,12 @@ export default function Home() {
             {questions.map((question, index) => {
               const isLatestChanged = question.id === latestChangedQuestion;
               const hasVoted = votedQuestions.includes(question.id);
+              const isOwnQuestion =
+                currentUser && question.name === currentUser.name;
 
               return (
                 <motion.div
-                  key={index}
+                  key={question.id}
                   layout
                   initial={{ opacity: 0, y: 20 }}
                   animate={{
@@ -280,40 +302,44 @@ export default function Home() {
                         : ""
                     }
                     ${hasVoted ? "bg-blue-50" : ""}
+                    ${isOwnQuestion ? "bg-green-50" : ""}
                   `}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-grow mr-4">
-                      <p className="text-gray-800">{question.question_text}</p>
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                    <div className="flex-grow">
+                      <p className="text-gray-800 break-words">
+                        {question.question_text}
+                      </p>
                       <div className="text-sm text-gray-500 mt-2">
                         Asked by {question.name}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 self-end sm:self-start">
                       <motion.span
-                        key={`votes-${question.id}`}
+                        key={`votes-${question.id}-${question.vote_count}`}
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: "spring", stiffness: 300 }}
                         className="text-lg font-semibold text-blue-600"
                       >
                         {question.vote_count}
                       </motion.span>
-                      <button
-                        onClick={() => handleVote(question.id)}
-                        disabled={hasVoted}
-                        className={`
-                          flex items-center space-x-1 px-2 py-1 rounded
-                          ${
-                            hasVoted
-                              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                              : "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                          }
-                        `}
-                      >
-                        <ThumbsUp className="h-4 w-4" />
-                        <span>Vote</span>
-                      </button>
+                      {!isOwnQuestion && (
+                        <Button
+                          onClick={() => handleVote(question.id)}
+                          disabled={Boolean(hasVoted)}
+                          className={`
+                            flex items-center space-x-1 px-2 py-1 rounded
+                            ${
+                              hasVoted
+                                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                            }
+                          `}
+                        >
+                          <ThumbsUp className="h-4 w-4" />
+                          <span>Vote</span>
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
