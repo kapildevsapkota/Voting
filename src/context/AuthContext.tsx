@@ -28,16 +28,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Check authentication status
   const checkAuthStatus = async (): Promise<boolean> => {
     if (typeof window !== "undefined") {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("admin");
       if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
           setIsAuthenticated(true);
           return true;
-        } catch  {
+        } catch {
           // Clear invalid stored user data
-          localStorage.removeItem("user");
+          localStorage.removeItem("admin");
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Ensure this only runs on the client side
         if (typeof window !== "undefined") {
-          localStorage.setItem("user", JSON.stringify(userInfo));
+          localStorage.setItem("admin", JSON.stringify(userInfo));
         }
 
         resolve(true);
@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Ensure this only runs on the client side
     if (typeof window !== "undefined") {
-      localStorage.removeItem("user");
+      localStorage.removeItem("admin");
     }
   };
 

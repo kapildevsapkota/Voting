@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import Header from "@/components/Header";
 import TopQuestions from "@/components/TopQuestions";
+import Image from "next/image";
 
 export default function Home() {
   const router = useRouter();
@@ -17,10 +17,27 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-center mb-8">Conference Q&A</h1>
-        <TopQuestions />
+        <div className="flex gap-6">
+          <div className="w-2/3">
+            <TopQuestions />
+          </div>
+          <div className="w-1/3">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <Image
+                src="/qr.png"
+                alt="QR Code"
+                width={300}
+                height={300}
+                className="w-full h-auto"
+              />
+              <p className="text-center font-bold text-4xl mt-4 ">
+                Scan QR code to ask questions
+              </p>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
