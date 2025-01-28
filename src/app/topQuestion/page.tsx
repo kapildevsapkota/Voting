@@ -23,8 +23,8 @@ export default function Home() {
           <div className="w-2/3">
             <TopQuestions />
           </div>
-          <div className="w-1/3">
-            <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="w-1/3 sticky top-0 h-96 ">
+            <div className="bg-white p-6 rounded-lg  shadow-md h-full">
               <Image
                 src="/qr.png"
                 alt="QR Code"

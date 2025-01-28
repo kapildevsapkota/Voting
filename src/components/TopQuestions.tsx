@@ -30,7 +30,7 @@ const fetcher = async (url: string) => {
 };
 
 export default function TopQuestions() {
-  const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
+  
   const [previousQuestions, setPreviousQuestions] = useState<Question[]>([]);
   const [latestChangedQuestion, setLatestChangedQuestion] = useState<
     number | null
@@ -132,29 +132,8 @@ export default function TopQuestions() {
                     <div className="flex items-start justify-between">
                       <div className="flex-grow mr-4">
                         <p className="font-medium text-gray-800 mb-2">
-                          {expandedQuestion === question.id
-                            ? question.question_text
-                            : `${question.question_text.slice(0, 100)}${
-                                question.question_text.length > 100 ? "..." : ""
-                              }`}
+                          {question.question_text}
                         </p>
-                        {question.question_text.length > 100 && (
-                          <Button
-                            variant="link"
-                            onClick={() =>
-                              setExpandedQuestion(
-                                expandedQuestion === question.id
-                                  ? null
-                                  : question.id
-                              )
-                            }
-                            className="p-0 h-auto font-normal text-blue-600 hover:text-blue-800"
-                          >
-                            {expandedQuestion === question.id
-                              ? "Show less"
-                              : "Read more"}
-                          </Button>
-                        )}
                       </div>
                       <div className="flex items-center space-x-2">
                         <motion.span
